@@ -95,7 +95,11 @@ const uploadFile = async (file, url, token, location, callback) => {
 };
 
 export default function Home() {
+
+  // Modify by useReducer
+
   const [file, setFile] = React.useState();
+  const [fileSize, setFileSize] = React.useState();
   const [url, setUrl] = React.useState();
   const [accessToken, setAccessToken] = React.useState();
   const [link, setLink] = React.useState();
@@ -108,7 +112,7 @@ export default function Home() {
     setIsUploading(true)
 
     const {token} = await fetch(
-      `http://localhost:9000/.netlify/functions/google-storage?eventType=token`
+      `http://localhost:9000/.netlify/functions/google-drive?eventType=token`
     ).then((r) => {
       const token = r.json();
       setAccessToken(token);
@@ -137,7 +141,7 @@ export default function Home() {
   React.useEffect(() => {
     if (!file && !url) return;
     uploadFile(file, url, accessToken, url, (res => {
-      console.log(res)
+
       setProgress({
         current: res?.progressNumber?.current,
         end: res?.progressNumber?.end,
@@ -153,7 +157,7 @@ export default function Home() {
         setIsUploading(false)
 
         fetch(
-          `http://localhost:9000/.netlify/functions/google-storage?eventType=link&fileId=${res.result.id}`
+          `http://localhost:9000/.netlify/functions/google-drive?eventType=link&fileId=${res.result.id}`
         )
           .then((r) => r.json())
           .then((response) => {
@@ -174,12 +178,15 @@ export default function Home() {
           type="file"
           name="file"
           onChange={(e) => {
+            setFileSize(e.target.files[0].size);
             setFile(e.target.files[0]);
           }}
         />
         <button>{isUploading ? "Uploading..." : "Submit"}</button>
       </form>
       <progress id="file" value={progress.current} min={0} max={progress.end} />
+      <br />
+      {fileSize && formatBytes(fileSize)}
       <br />
       {link?.webViewLink && (
         <a href={link.webViewLink} target="_blank" rel="noreferrer">
@@ -188,4 +195,16 @@ export default function Home() {
       )}
     </div>
   );
+}
+
+function formatBytes(bytes, decimals = 2) {
+  if (bytes === 0) return "0 Bytes";
+
+  const k = 1024;
+  const dm = decimals < 0 ? 0 : decimals;
+  const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
+
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + " " + sizes[i];
 }

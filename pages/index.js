@@ -59,21 +59,27 @@ const getFile = ({ location, fileSize, len, start, end, data, i }) => {
 };
 
 const uploadFile = async (file, url, token, location, callback) => {
-
   const chunkSize = 52428800; // 20MB (must be multiple of 256kb)
   const fileSize = file?.size;
   const len = Math.ceil(fileSize / chunkSize);
   for (let i = 0; i < len; i++) {
     let start = i * chunkSize;
-    let end =
-      fileSize < start + chunkSize ? fileSize : start + chunkSize;
+    let end = fileSize < start + chunkSize ? fileSize : start + chunkSize;
     let data = file.slice(start, end);
 
     end -= 1;
     callback?.({ progressNumber: { current: i, end: len } }, location);
 
     try {
-      const res = await getFile({ location, fileSize, len, start, end, data, i });
+      const res = await getFile({
+        location,
+        fileSize,
+        len,
+        start,
+        end,
+        data,
+        i,
+      });
       if (res.status == "Next" || (res.status == "Done" && i == len - 1)) {
         callback(
           {
@@ -87,7 +93,7 @@ const uploadFile = async (file, url, token, location, callback) => {
         return;
       }
     } catch (err) {
-      console.log(err)
+      console.log(err);
       callback(null, err);
       return;
     }
@@ -95,7 +101,6 @@ const uploadFile = async (file, url, token, location, callback) => {
 };
 
 export default function Home() {
-
   // Modify by useReducer
 
   const [file, setFile] = React.useState();
@@ -109,9 +114,9 @@ export default function Home() {
   const handleSetResumableSessionUrl = async (e) => {
     e.preventDefault();
 
-    setIsUploading(true)
+    setIsUploading(true);
 
-    const {token} = await fetch(
+    const { token } = await fetch(
       `http://localhost:9000/.netlify/functions/google-drive?eventType=token`
     ).then((r) => {
       const token = r.json();
@@ -136,25 +141,23 @@ export default function Home() {
 
     const sessionUrl = response.headers.get("Location");
     setUrl(sessionUrl);
-  }
+  };
 
   React.useEffect(() => {
     if (!file && !url) return;
-    uploadFile(file, url, accessToken, url, (res => {
-
+    uploadFile(file, url, accessToken, url, (res) => {
       setProgress({
         current: res?.progressNumber?.current,
         end: res?.progressNumber?.end,
       });
 
       if (res?.status === "Done") {
-
         setProgress({
           current: res?.progressNumber?.end,
           end: res?.progressNumber?.end,
         });
 
-        setIsUploading(false)
+        setIsUploading(false);
 
         fetch(
           `http://localhost:9000/.netlify/functions/google-drive?eventType=link&fileId=${res.result.id}`
@@ -164,16 +167,13 @@ export default function Home() {
             setLink(response);
           });
       }
-    }));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url]);
 
   return (
     <div className={styles.container}>
-      <form
-        encType="multipart/form-data"
-        onSubmit={handleSetResumableSessionUrl}
-      >
+      <form onSubmit={handleSetResumableSessionUrl}>
         <input
           type="file"
           name="file"
